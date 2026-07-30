@@ -1,6 +1,6 @@
 {
   "name": "sync-sync-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Single source of truth for MCP server configs and instruction files across AI coding tools (Claude Code, Cursor, ...)",
   "type": "module",
   "bin": {
