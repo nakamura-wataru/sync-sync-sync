@@ -20,15 +20,20 @@ interface InitPromptResult {
 
 /**
  * Only prompts when it would actually matter: config.json doesn't exist yet, we're attached to
- * a real terminal, and the caller didn't opt out with --yes. Otherwise falls back to leaving
- * enabledToolIds undefined (runInit then enables every registered adapter, unchanged prior
- * behavior) and only honors --with-onboarding if it was passed explicitly.
+ * a real terminal, and the caller didn't opt out with --yes.
+ */
+function shouldSkipInitPrompts(projectRoot: string, yes: boolean): boolean {
+  return yes || existsSync(configPath(projectRoot)) || !process.stdin.isTTY;
+}
+
+/**
+ * When skipping, falls back to leaving enabledToolIds undefined (runInit then enables every
+ * registered adapter, unchanged prior behavior) and only honors --with-onboarding if passed.
  */
 async function promptInitOptions(
-  projectRoot: string,
-  opts: { yes: boolean; withOnboarding: boolean },
+  opts: { withOnboarding: boolean },
+  skipPrompt: boolean,
 ): Promise<InitPromptResult> {
-  const skipPrompt = opts.yes || existsSync(configPath(projectRoot)) || !process.stdin.isTTY;
   if (skipPrompt) {
     return { enabledToolIds: undefined, withOnboarding: opts.withOnboarding };
   }
@@ -65,10 +70,36 @@ program
   .description(".sync-sync-sync/config.json を初期化する")
   .option("--yes", "対話プロンプトをスキップし、全ツールを有効にする", false)
   .option("--with-onboarding", "ONBOARDING.md も生成する（プロンプトをスキップする場合に指定）", false)
-  .action(async (opts: { yes: boolean; withOnboarding: boolean }) => {
+  .option("--run-sync", "initの直後にsyncも実行する（プロンプトをスキップする場合に指定）", false)
+  .action(async (opts: { yes: boolean; withOnboarding: boolean; runSync: boolean }) => {
     const projectRoot = process.cwd();
-    const { enabledToolIds, withOnboarding } = await promptInitOptions(projectRoot, opts);
+    const skipPrompt = shouldSkipInitPrompts(projectRoot, opts.yes);
+
+    const { enabledToolIds, withOnboarding } = await promptInitOptions(opts, skipPrompt);
     process.exitCode = runInit(projectRoot, { enabledToolIds, withOnboarding });
+
+    // 取り込んだ既存MCP設定の確認を促すメッセージは runInit 側で既に表示済みなので、
+    // ここでは「見た上でsyncするか」を確認する形になる。
+    let runSyncNow = opts.runSync;
+    if (!skipPrompt) {
+      const answer = await clack.confirm({
+        message: "今すぐ `sync-sync-sync sync` を実行して各ツールの設定ファイルを生成しますか？",
+        initialValue: true,
+      });
+      if (clack.isCancel(answer)) {
+        clack.cancel("キャンセルしました。");
+        process.exit(1);
+      }
+      runSyncNow = answer;
+    }
+
+    if (runSyncNow) {
+      try {
+        process.exitCode = runSync(projectRoot, { check: false });
+      } catch (error) {
+        handleError(error);
+      }
+    }
   });
 
 program
