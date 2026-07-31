@@ -2,7 +2,7 @@ class SyncSyncSync < Formula
   desc "Single source of truth for MCP server configs and instruction files across AI coding tools"
   homepage "https://github.com/nakamura-wataru/sync-sync-sync"
   url "https://github.com/nakamura-wataru/sync-sync-sync/archive/refs/tags/v0.1.1.tar.gz"
-  sha256 "REPLACE_AFTER_TAG_IS_PUSHED"
+  sha256 "2535e8659794dc99a782f003137c3048645e76253331e8895a0416881c0b1877"
 
   depends_on "node"
 
