@@ -5,6 +5,15 @@
 
 ## セットアップ
 
+### Homebrew（推奨）
+
+```bash
+brew tap nakamura-wataru/sync-sync-sync https://github.com/nakamura-wataru/sync-sync-sync
+brew install sync-sync-sync
+```
+
+### ソースから
+
 ```bash
 npm install
 npm run build
